@@ -75,8 +75,22 @@ export const usePhotosStore = defineStore('photos', () => {
                 url += '?' + albumIds.map(id => `albumId=${id}`).join('&')
             }
 
-            const response = await fetch(url)
+            console.log('Fetching data from:', url)
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
             const data: Photo[] = await response.json()
+            console.log('Received data length:', data.length)
 
             const modifiedData = data.map(photo => ({
                 ...photo,
@@ -90,39 +104,27 @@ export const usePhotosStore = defineStore('photos', () => {
             hasMore.value = modifiedData.length > itemsPerPage.value
         } catch (error) {
             console.error('Error fetching photos:', error)
+            if (error instanceof Error) {
+                console.error('Error details:', error.message)
+            }
+            loading.value = false
         } finally {
             loading.value = false
         }
     }
-
-    const loadMore = () => {
-        if (!hasMore.value || loading.value) return
-
-        const start = displayedPhotos.value.length
-        const end = start + 20
-        const nextItems = photos.value.slice(start, end)
-
-        if (nextItems.length > 0) {
-            displayedPhotos.value = [...displayedPhotos.value, ...nextItems]
-            hasMore.value = end < photos.value.length
-            currentPage.value++
-        } else {
-            hasMore.value = false
-        }
-    }
-
-    const hasMoreItems = computed(() => hasMore.value)
 
     return {
         photos,
         displayedPhotos,
         loading,
         filterAlbumIds,
-        fetchPhotos,
-        loadMore,
-        hasMoreItems,
-        setSorting,
+        currentPage,
+        itemsPerPage,
+        hasMore,
         sortKey,
-        sortDirection
+        sortDirection,
+        sortPhotos,
+        setSorting,
+        fetchPhotos
     }
-}) 
+})
