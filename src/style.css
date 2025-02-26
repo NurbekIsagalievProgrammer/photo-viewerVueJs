@@ -1,3 +1,8 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+/* Добавим базовые стили для темной темы */
+.dark {
+    color-scheme: dark;
+}
