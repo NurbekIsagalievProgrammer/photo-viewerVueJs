@@ -69,22 +69,24 @@ export const usePhotosStore = defineStore('photos', () => {
         loading.value = true
         try {
             const albumIds = filterAlbumIds.value.trim().split(/\s+/).filter(Boolean)
+            
+            // Базовый URL API
+            const baseUrl = 'https://jsonplaceholder.typicode.com/photos'
+            let url = baseUrl
 
-            let url = 'https://jsonplaceholder.typicode.com/photos'
+            // Добавляем параметры альбомов если они есть
             if (albumIds.length > 0) {
                 url += '?' + albumIds.map(id => `albumId=${id}`).join('&')
             }
 
+            // Если это продакшен (Netlify), используем прокси
+            if (import.meta.env.PROD) {
+                url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
+            }
+
             console.log('Fetching data from:', url)
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            })
-
+            const response = await fetch(url)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
