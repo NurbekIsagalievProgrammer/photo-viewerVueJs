@@ -69,41 +69,26 @@ export const usePhotosStore = defineStore('photos', () => {
         loading.value = true
         try {
             const albumIds = filterAlbumIds.value.trim().split(/\s+/).filter(Boolean)
-            
-            // Базовый URL API
-            const baseUrl = 'https://jsonplaceholder.typicode.com/photos'
-            let url = baseUrl
 
-            // Добавляем параметры альбомов если они есть
-            if (albumIds.length > 0) {
-                url += '?' + albumIds.map(id => `albumId=${id}`).join('&')
-            }
-
-            // Если это продакшен (Netlify), используем прокси
-            if (import.meta.env.PROD) {
-                url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
-            }
-
-            console.log('Fetching data from:', url)
-
-            const response = await fetch(url)
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-
-            const data: Photo[] = await response.json()
-            console.log('Received data length:', data.length)
-
-            const modifiedData = data.map(photo => ({
-                ...photo,
-                url: `https://picsum.photos/id/${photo.id}/600/600`,
-                thumbnailUrl: `https://picsum.photos/id/${photo.id}/150/150`
+            // Генерируем тестовые данные
+            const mockData: Photo[] = Array.from({ length: 100 }, (_, index) => ({
+                id: index + 1,
+                albumId: Math.floor(index / 10) + 1,
+                title: `Фото ${index + 1}`,
+                url: `https://picsum.photos/id/${index + 1}/600/600`,
+                thumbnailUrl: `https://picsum.photos/id/${index + 1}/150/150`
             }))
 
-            photos.value = sortPhotos(modifiedData)
+            // Фильтруем по albumId если нужно
+            const filteredData = albumIds.length > 0
+                ? mockData.filter(photo => albumIds.includes(String(photo.albumId)))
+                : mockData
+
+            photos.value = sortPhotos(filteredData)
             displayedPhotos.value = photos.value.slice(0, itemsPerPage.value)
             currentPage.value = 1
-            hasMore.value = modifiedData.length > itemsPerPage.value
+            hasMore.value = filteredData.length > itemsPerPage.value
+
         } catch (error) {
             console.error('Error fetching photos:', error)
             if (error instanceof Error) {
@@ -112,6 +97,22 @@ export const usePhotosStore = defineStore('photos', () => {
             loading.value = false
         } finally {
             loading.value = false
+        }
+    }
+
+    const loadMore = () => {
+        if (!hasMore.value || loading.value) return
+
+        const start = displayedPhotos.value.length
+        const end = start + 20
+        const nextItems = photos.value.slice(start, end)
+
+        if (nextItems.length > 0) {
+            displayedPhotos.value = [...displayedPhotos.value, ...nextItems]
+            hasMore.value = end < photos.value.length
+            currentPage.value++
+        } else {
+            hasMore.value = false
         }
     }
 
@@ -127,6 +128,8 @@ export const usePhotosStore = defineStore('photos', () => {
         sortDirection,
         sortPhotos,
         setSorting,
-        fetchPhotos
+        fetchPhotos,
+        loadMore,
+        hasMoreItems: computed(() => hasMore.value)
     }
 })
